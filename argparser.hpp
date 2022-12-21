@@ -6,50 +6,50 @@
 #include <sstream>
 #include <vector>
 
-using namespace std;
+namespace argp {
 
-void error(string message, int code = 1) {
-  cerr << "Error: " << message << endl;
+void error(std::string message, int code = 1) {
+  std::cerr << "Error: " << message << std::endl;
   exit(code);
 }
 
-void error(vector<string> messages, int code = 1) {
+void error(std::vector<std::string> messages, int code = 1) {
   for (auto message : messages)
-    cerr << "Error: " << message << endl;
+    std::cerr << "Error: " << message << std::endl;
   exit(code);
 }
 
-template <typename A, typename B, typename C> struct Triad {
+template <typename A, typename B, typename C> struct triad {
   A first;
   B second;
   C third;
 
-  Triad(A first, B second, C third)
+  triad(A first, B second, C third)
       : first(first), second(second), third(third) {}
 };
 
-class ArgCount {
+class arg_count {
   unsigned _min;
   unsigned _max;
 
 public:
-  ArgCount() : _min(0), _max(UINT32_MAX) {}
+  arg_count() : _min(0), _max(UINT32_MAX) {}
 
-  ArgCount(unsigned number) : _min(number), _max(number) {}
+  arg_count(unsigned number) : _min(number), _max(number) {}
 
-  ArgCount(unsigned from, unsigned to) : _min(from), _max(to) {
+  arg_count(unsigned from, unsigned to) : _min(from), _max(to) {
     if (to < from)
       error("\"to\" is lower than \"from\"");
   }
 
-  ArgCount(const ArgCount &other) {
+  arg_count(const arg_count &other) {
     _min = other._min;
     _max = other._max;
   }
 
-  static ArgCount from(unsigned from) { return ArgCount(from, UINT32_MAX); }
+  static arg_count from(unsigned from) { return arg_count(from, UINT32_MAX); }
 
-  static ArgCount to(unsigned to) { return ArgCount(0, to); }
+  static arg_count to(unsigned to) { return arg_count(0, to); }
 
   bool includes(unsigned number) const {
     if (number < _min)
@@ -63,8 +63,8 @@ public:
 
   unsigned max() const { return _max; }
 
-  operator string() const {
-    stringstream result;
+  operator std::string() const {
+    std::stringstream result;
     result << "ArgCount(from=";
     result << _min;
     result << ", to=";
@@ -74,81 +74,81 @@ public:
   }
 };
 
-struct Parameter {
-  string name;
-  ArgCount count;
+struct parameter {
+  std::string name;
+  arg_count count;
 
-  bool match(string str) { return name == str; }
+  bool match(std::string str) { return name == str; }
 
-  operator string() {
-    stringstream result;
+  operator std::string() {
+    std::stringstream result;
     result << "Paramater \"";
     result << name;
     result << "\" with ";
-    result << (string)count;
+    result << (std::string)count;
     result << " arguments";
     return result.str();
   }
 };
 
-struct AliasedParameter : public Parameter {
-  class Builder {
-    string *_name;
-    ArgCount *_count;
-    vector<string> *_aliases;
+struct aliased_parameter : public parameter {
+  class builder {
+    std::string *_name;
+    arg_count *_count;
+    std::vector<std::string> *_aliases;
 
   public:
-    Builder() {
-      _name = new string();
-      _count = new ArgCount();
-      _aliases = new vector<string>();
+    builder() {
+      _name = new std::string();
+      _count = new arg_count();
+      _aliases = new std::vector<std::string>();
     }
 
-    ~Builder() {
+    ~builder() {
       delete _name;
       delete _count;
       delete _aliases;
     }
 
-    Builder name(string name) {
+    builder name(std::string name) {
       *_name = name;
       return *this;
     }
 
-    Builder args(ArgCount count) {
+    builder args(arg_count count) {
       *_count = count;
       return *this;
     }
 
-    Builder alias(string alias) {
+    builder alias(std::string alias) {
       _aliases->push_back(alias);
       return *this;
     }
 
-    AliasedParameter build() {
-      return AliasedParameter(*_name, *_count, *_aliases);
+    aliased_parameter build() {
+      return aliased_parameter(*_name, *_count, *_aliases);
     }
   };
 
-  vector<string> aliases;
+  std::vector<std::string> aliases;
 
-  AliasedParameter(string name, ArgCount count, vector<string> aliases)
+  aliased_parameter(std::string name, arg_count count, std::vector<std::string> aliases)
       : aliases(aliases) {
     this->name = name;
     this->count = count;
   }
 
-  bool match(string str) {
-    if (Parameter::match(str))
+  bool match(std::string str) {
+    if (parameter::match(str))
       return true;
-    return find_if(aliases.begin(), aliases.end(), [str](string alias) {
+    return find_if(aliases.begin(), aliases.end(), [str](std::string alias) {
              return alias == str;
            }) != aliases.end();
   }
 
-  operator string() {
-    stringstream result;
-    result << Parameter::operator string();
+  operator std::string() {
+    std::stringstream result;
+    result << parameter::operator std::string();
     if (!aliases.empty()) {
       result << ", aliases: \"";
       result << aliases[0];
@@ -165,73 +165,73 @@ struct AliasedParameter : public Parameter {
   }
 };
 
-class Parser {
-  string prefix;
-  ArgCount count;
-  vector<AliasedParameter> defined;
+class parser {
+  std::string prefix;
+  arg_count count;
+  std::vector<aliased_parameter> defined;
 
-  Parameter find_parameter(string str) {
+  parameter find_parameter(std::string str) {
     for (auto param : defined)
       if (param.match(str))
         return param;
     error("undefined parameter: \"" + str + "\"");
-    return Parameter();
+    return parameter();
   }
 
-  bool is_parameter(string str) {
+  bool is_parameter(std::string str) {
     return str.size() > prefix.size() && str.substr(0, prefix.size()) == prefix;
   }
 
 public:
-  class Builder {
-    ArgCount *_count;
-    vector<AliasedParameter> *_params;
-    string *_prefix;
+  class builder {
+    arg_count *_count;
+    std::vector<aliased_parameter> *_params;
+    std::string *_prefix;
 
   public:
-    Builder() {
-      _count = new ArgCount();
-      _params = new vector<AliasedParameter>();
-      _prefix = new string();
+    builder() {
+      _count = new arg_count();
+      _params = new std::vector<aliased_parameter>();
+      _prefix = new std::string();
     }
 
-    ~Builder() {
+    ~builder() {
       delete _count;
       delete _params;
       delete _prefix;
     }
 
-    Builder count(ArgCount count) {
+    builder count(arg_count count) {
       *_count = count;
       return *this;
     }
 
-    Builder param(AliasedParameter parameter) {
+    builder param(aliased_parameter parameter) {
       _params->push_back(parameter);
       return *this;
     }
 
-    Builder prefix(string prefix) {
+    builder prefix(std::string prefix) {
       *_prefix = prefix;
       return *this;
     }
 
-    Parser build() { return Parser(*_count, *_params, *_prefix); }
+    parser build() { return parser(*_count, *_params, *_prefix); }
   };
 
-  struct Result {
-    vector<string> arguments;
-    vector<pair<string, vector<string>>> parameters;
+  struct result {
+    std::vector<std::string> arguments;
+    std::vector<std::pair<std::string, std::vector<std::string>>> parameters;
   };
 
-  Parser(ArgCount count, vector<AliasedParameter> parameters,
-         string prefix = "-")
+  parser(arg_count count, std::vector<aliased_parameter> parameters,
+         std::string prefix = "-")
       : count(count), defined(parameters), prefix(prefix) {}
 
-  Result parse(vector<string> args) {
-    //           prefix  parameter  arguments
-    vector<Triad<string, Parameter, vector<string>>> stack;
-    Result result;
+  result parse(std::vector<std::string> args) {
+    //                prefix       parameter  arguments
+    std::vector<triad<std::string, parameter, std::vector<std::string>>> stack;
+    result result;
     for (auto ptr = args.begin(); ptr != args.end(); ptr++) {
       if (is_parameter(*ptr)) {
         stack.push_back({*ptr, find_parameter(*ptr), {}});
@@ -250,8 +250,8 @@ public:
 
     auto arg_size = result.arguments.size();
     if (!count.includes(arg_size)) {
-      auto err = " arguments: expected " + (string)count + ", got " +
-                 to_string(arg_size);
+      auto err = " arguments: expected " + (std::string)count + ", got " +
+                 std::to_string(arg_size);
       if (count.min() > arg_size)
         error("not enough" + err);
       else
@@ -259,7 +259,7 @@ public:
     }
 
     if (!stack.empty()) {
-      vector<string> errors;
+      std::vector<std::string> errors;
       for (auto item : stack) {
         auto arg_size = item.third.size();
         if (!count.includes(arg_size)) {
@@ -267,7 +267,7 @@ public:
           if (item.first != item.second.name)
             name += " (\"" + item.second.name + "\")";
           auto err = " arguments for parameter " + name + ": expected " +
-                     (string)item.second.count + ", got " + to_string(arg_size);
+                     (std::string)item.second.count + ", got " + std::to_string(arg_size);
           if (count.min() > arg_size)
             error("not enough" + err);
           else
@@ -280,10 +280,16 @@ public:
     return result;
   }
 
-  Result parse(int argc, char **argv) {
-    vector<string> result;
+  result parse(int argc, char **argv) {
+    std::vector<std::string> result;
     for (auto i = 1; i < argc; i++)
       result.push_back(argv[i]);
     return parse(result);
   }
 };
+
+parser::builder P() { return parser::builder(); }
+
+aliased_parameter::builder R() { return aliased_parameter::builder(); }
+
+} // namespace argparser

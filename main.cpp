@@ -1,9 +1,9 @@
 #include "argparser.hpp"
 
-string to_string(vector<string> vec) {
+std::string to_string(std::vector<std::string> vec) {
   if (vec.empty())
     return "[]";
-  stringstream s;
+  std::stringstream s;
   s << "[\"" << vec[0] << "\"";
   for (auto i = 1; i < vec.size(); i++)
     s << ", \"" << vec[i] << "\"";
@@ -12,19 +12,19 @@ string to_string(vector<string> vec) {
 }
 
 int main(int argc, char **argv) {
-  auto parser = Parser::Builder()
+  auto p = argp::P()
                     .count(1)
-                    .param(AliasedParameter::Builder()
+                    .param(argp::R()
                                .name("--param")
                                .alias("-O")
-                               .args(ArgCount(1, 5))
+                               .args(argp::arg_count(1, 5))
                                .build())
                     .prefix("-")
                     .build();
-  auto result = parser.parse(argc, argv);
+  auto result = p.parse(argc, argv);
   auto args = to_string(result.arguments);
-  cout << "Аргументы: " << args << endl;
+  std::cout << "Аргументы: " << args << std::endl;
   for (auto parameter : result.parameters)
-    cout << "Параметр \"" << parameter.first
-         << "\": " << to_string(parameter.second) << endl;
+    std::cout << "Параметр \"" << parameter.first
+         << "\": " << to_string(parameter.second) << std::endl;
 }
