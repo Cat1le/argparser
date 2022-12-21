@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
                     .param(argp::R()
                                .name("--param")
                                .alias("-O")
-                               .args(argp::arg_count(1, 5))
+                               .argc({1, 5})
                                .build())
                     .prefix("-")
                     .build();

@@ -115,7 +115,7 @@ struct aliased_parameter : public parameter {
       return *this;
     }
 
-    builder args(arg_count count) {
+    builder argc(arg_count count) {
       *_count = count;
       return *this;
     }
